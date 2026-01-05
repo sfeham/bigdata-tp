@@ -1,0 +1,24 @@
+# Fichiers compilés Java
+*.class
+*.jar
+pc/
+
+# Données générées
+data/raw/*.json
+
+# Fichiers système Mac
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# Logs
+*.log
+logs/
