@@ -1,0 +1,6 @@
+2012-12-31	17:59	Norfolk	Toys	164.34	MasterCard
+2012-12-31	17:59	Chula Vista	Music	380.67	Visa
+2012-12-31	17:59	Hialeah	Toys	115.21	MasterCard
+2012-12-31	17:59	Indianapolis	Men's Clothing	158.28	Cash
+2012-12-31	17:59	Baltimore	DVDs	467.3	Amex
+2012-12-31	17:59	Gilbert	Consumer Electronics	354.66	Discover
