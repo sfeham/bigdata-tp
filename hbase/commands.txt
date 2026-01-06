@@ -1,7 +1,10 @@
-# Créer la table sales_ledger
+# Creer la table sales_ledger
 create 'sales_ledger','customer','sales'
 
-# Insérer les données
+# Verifier la table
+list
+
+# Inserer les donnees
 put 'sales_ledger','101','customer:name','John White'
 put 'sales_ledger','101','customer:city','Los Angeles, CA'
 put 'sales_ledger','101','sales:product','Chairs'
@@ -22,8 +25,8 @@ put 'sales_ledger','104','customer:city','St. Louis, MO'
 put 'sales_ledger','104','sales:product','Bed'
 put 'sales_ledger','104','sales:amount','$1,600.00'
 
-# Afficher toutes les données
+# Afficher toutes les donnees
 scan 'sales_ledger'
 
-# Afficher une ligne spécifique
+# Afficher une ligne specifique
 get 'sales_ledger','101'
