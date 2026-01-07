@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Module** | Big Data |
-| **Technologies** | Hadoop, HDFS, MapReduce, Spark, HBase |
+| **Technologies** | Hadoop, HDFS, MapReduce, Spark, HBase, Kafka |
 | **Environnement** | Docker (cluster 3 noeuds) |
 | **Langage** | Java, Scala, Python |
 
@@ -18,8 +18,9 @@
 3. [Installation](#installation)
 4. [TP1 - Hadoop MapReduce & HBase](#tp1---hadoop-mapreduce--hbase)
 5. [TP2 - Spark Batch & Streaming](#tp2---spark-batch--streaming)
-6. [Rapport d'Analyse](#rapport-danalyse)
-7. [Conclusion](#conclusion)
+6. [TP3 - HBase & Kafka](#tp3---hbase--kafka)
+7. [Rapport d'Analyse](#rapport-danalyse)
+8. [Conclusion](#conclusion)
 
 ---
 
@@ -346,6 +347,174 @@ Time: 1767714485000 ms
 ```
 
 Le streaming traite chaque ligne en temps réel et affiche le comptage des mots toutes les 5 secondes.
+
+---
+
+## TP3 - HBase & Kafka
+
+### Objectifs
+- Approfondir la manipulation de HBase (base NoSQL orientée colonnes)
+- Découvrir Apache Kafka pour la collecte de données en streaming
+- Comprendre l'architecture producteur/consommateur
+
+### Partie 1 : HBase - Stockage NoSQL
+
+#### Démarrage des services
+
+```bash
+# Démarrer le cluster
+docker start hadoop-master hadoop-worker1 hadoop-worker2
+docker exec -it hadoop-master bash
+
+# Lancer Hadoop et HBase
+./start-hadoop.sh
+start-hbase.sh
+hbase shell
+```
+
+#### Création de la table sales_ledger
+
+Structure de la table avec 2 familles de colonnes :
+
+| Row Key | customer | sales |
+|---------|----------|-------|
+| ROW_ID | name, city | product, amount |
+| 101 | John White, Los Angeles, CA | Chairs, $400.00 |
+| 102 | Jane Brown, Atlanta, GA | Lamps, $200.00 |
+| 103 | Bill Green, Pittsburgh, PA | Desk, $500.00 |
+| 104 | Jack Black, St. Louis, MO | Bed, $1,600.00 |
+
+```bash
+# Créer la table
+create 'sales_ledger', 'customer', 'sales'
+
+# Vérifier
+list
+```
+
+#### Insertion des données
+
+```bash
+put 'sales_ledger','101','customer:name','John White'
+put 'sales_ledger','101','customer:city','Los Angeles, CA'
+put 'sales_ledger','101','sales:product','Chairs'
+put 'sales_ledger','101','sales:amount','$400.00'
+
+put 'sales_ledger','102','customer:name','Jane Brown'
+put 'sales_ledger','102','customer:city','Atlanta, GA'
+put 'sales_ledger','102','sales:product','Lamps'
+put 'sales_ledger','102','sales:amount','$200.00'
+
+put 'sales_ledger','103','customer:name','Bill Green'
+put 'sales_ledger','103','customer:city','Pittsburgh, PA'
+put 'sales_ledger','103','sales:product','Desk'
+put 'sales_ledger','103','sales:amount','$500.00'
+
+put 'sales_ledger','104','customer:name','Jack Black'
+put 'sales_ledger','104','customer:city','St. Louis, MO'
+put 'sales_ledger','104','sales:product','Bed'
+put 'sales_ledger','104','sales:amount','$1,600.00'
+```
+
+#### Requêtes HBase
+
+```bash
+# Afficher toutes les données
+scan 'sales_ledger'
+
+# Résultat :
+# ROW         COLUMN+CELL
+# 101         column=customer:city, value=Los Angeles, CA
+# 101         column=customer:name, value=John White
+# 101         column=sales:amount, value=$400.00
+# 101         column=sales:product, value=Chairs
+# ...
+# 4 row(s)
+
+# Récupérer une valeur spécifique
+get 'sales_ledger','102',{COLUMN => 'sales:product'}
+# Résultat : value=Lamps
+
+# Récupérer toutes les infos d'une ligne
+get 'sales_ledger','101'
+```
+
+### Partie 2 : Apache Kafka - Bus de Messages
+
+#### Présentation
+
+Apache Kafka est une plateforme de streaming distribuée qui permet de :
+1. **Publier/Souscrire** à des flux d'enregistrements (comme une file de messages)
+2. **Stocker** les flux de manière tolérante aux pannes
+3. **Traiter** les enregistrements en temps réel
+
+#### Architecture Kafka
+
+| Composant | Description |
+|-----------|-------------|
+| **Topic** | Catégorie/flux de messages |
+| **Partition** | Division d'un topic pour la parallélisation |
+| **Producer** | Publie des messages dans un topic |
+| **Consumer** | Lit les messages depuis un topic |
+| **Broker** | Serveur Kafka qui stocke les données |
+| **Zookeeper** | Coordination du cluster Kafka |
+
+#### Démarrage de Kafka
+
+```bash
+# Depuis le conteneur hadoop-master
+./start-kafka-zookeeper.sh
+```
+
+#### Création d'un Topic
+
+```bash
+# Créer le topic "Hello-Kafka"
+kafka-topics.sh --create --topic Hello-Kafka \
+    --replication-factor 1 --partitions 1 \
+    --bootstrap-server localhost:9092
+
+# Lister les topics
+kafka-topics.sh --list --bootstrap-server localhost:9092
+# Résultat : Hello-Kafka
+```
+
+#### Exemple Producteur/Consommateur
+
+**Terminal 1 - Producteur :**
+```bash
+kafka-console-producer.sh --broker-list localhost:9092 --topic Hello-Kafka
+> test 1
+> test2
+> test ok
+```
+
+**Terminal 2 - Consommateur :**
+```bash
+kafka-console-consumer.sh --bootstrap-server localhost:9092 \
+    --topic Hello-Kafka --from-beginning
+# Affiche en temps réel :
+# test 1
+# test2
+# test ok
+```
+
+### Dataset Vélib
+
+Pour ce TP, nous disposons d'un jeu de données Vélib en temps réel (`velib-disponibilite-en-temps-reel.csv`) contenant **1505 stations** avec les informations suivantes :
+
+| Champ | Description |
+|-------|-------------|
+| Identifiant station | ID unique de la station |
+| Nom station | Nom de la station |
+| Station en fonctionnement | OUI/NON |
+| Capacité de la station | Nombre total de bornettes |
+| Nombre bornettes libres | Places disponibles |
+| Nombre total vélos disponibles | Vélos disponibles |
+| Vélos mécaniques disponibles | Vélos classiques |
+| Vélos électriques disponibles | Vélos électriques |
+| Coordonnées géographiques | Latitude, Longitude |
+| Nom communes équipées | Ville |
 
 ---
 
