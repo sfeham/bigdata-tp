@@ -516,6 +516,89 @@ Pour ce TP, nous disposons d'un jeu de données Vélib en temps réel (`velib-di
 | Coordonnées géographiques | Latitude, Longitude |
 | Nom communes équipées | Ville |
 
+### Partie 3 : Google Cloud Platform (Optionnel)
+
+Cette partie optionnelle montre comment charger les données Vélib dans le cloud Google pour les analyser avec BigQuery.
+
+#### Architecture Cloud
+
+```
+┌─────────────┐     ┌─────────────────┐     ┌─────────────┐
+│  Fichiers   │ ──► │  Cloud Storage  │ ──► │  BigQuery   │
+│  CSV/JSON   │     │    (bucket)     │     │   (SQL)     │
+└─────────────┘     └─────────────────┘     └─────────────┘
+     Local              Stockage              Analyse
+```
+
+#### Étapes de configuration
+
+1. **Créer un projet GCP** sur https://console.cloud.google.com
+2. **Créer un bucket Cloud Storage** : `velib-raw-data-bucket`
+3. **Activer BigQuery** dans la console
+
+#### Upload des données vers GCS
+
+```bash
+# Installer Google Cloud SDK
+sudo apt install google-cloud-cli
+
+# Authentification
+gcloud auth login
+
+# Upload vers le bucket
+gsutil cp velib-disponibilite-en-temps-reel.csv gs://velib-raw-data-bucket/
+```
+
+#### Chargement dans BigQuery
+
+```bash
+bq load \
+  --source_format=CSV \
+  --skip_leading_rows=1 \
+  velib_dataset.velib_table \
+  gs://velib-raw-data-bucket/velib-disponibilite-en-temps-reel.csv
+```
+
+#### Requêtes SQL BigQuery
+
+**Nombre total de stations :**
+```sql
+SELECT COUNT(DISTINCT `Identifiant station`) AS nb_stations
+FROM `velib-data-project.dataset_velib.velib`;
+-- Résultat : 1505 stations
+```
+
+**Stations en service vs hors service :**
+```sql
+SELECT
+  `Station en fonctionnement`,
+  COUNT(*) AS nb_stations
+FROM `velib-data-project.dataset_velib.velib`
+GROUP BY `Station en fonctionnement`;
+-- Résultat : OUI = 1502, NON = 3
+```
+
+**Top 10 des plus grosses stations :**
+```sql
+SELECT
+  `Nom station`,
+  `Capacité de la station`
+FROM `velib-data-project.dataset_velib.velib`
+ORDER BY `Capacité de la station` DESC
+LIMIT 10;
+```
+
+**Taux de disponibilité par station :**
+```sql
+SELECT
+  `Nom station`,
+  `Capacité de la station`,
+  `Nombre total vélos disponibles`,
+  SAFE_DIVIDE(`Nombre total vélos disponibles`, `Capacité de la station`) * 100 AS taux_disponibilite
+FROM `velib-data-project.dataset_velib.velib`
+ORDER BY taux_disponibilite DESC;
+```
+
 ---
 
 ## Rapport d'Analyse
